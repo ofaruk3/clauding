@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <AssemblyName>Clauding</AssemblyName>
+    <RootNamespace>Clauding</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <Version>0.1.0</Version>
+    <ApplicationIcon>icon.ico</ApplicationIcon>
+    <Product>Clauding</Product>
+    <Company>ofc.works</Company>
+    <Description>A tiling window manager for Claude Code on Windows</Description>
+    <Copyright>Copyright 2026 ofc.works</Copyright>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4314.35" />
+    <PackageReference Include="Velopack" Version="1.2.161" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="web\**\*" Exclude="web\onboarding\mock\**" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="icon.ico" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="makro\ch57x-keyboard-tool.exe" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

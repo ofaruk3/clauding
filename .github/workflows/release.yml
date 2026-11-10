@@ -1,0 +1,39 @@
+# Push a tag like v0.2.0 → builds, packs with Velopack and publishes a GitHub Release.
+# Installed copies of Clauding pick the new release up on their next update check.
+name: release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+      - name: Version from tag
+        shell: pwsh
+        run: echo "VERSION=$($env:GITHUB_REF_NAME.TrimStart('v'))" >> $env:GITHUB_ENV
+      - name: Self-test
+        shell: pwsh
+        run: |
+          dotnet build Clauding.csproj -c Release -p:Version=${{ env.VERSION }}
+          $exe = Get-ChildItem bin/Release -Recurse -Filter Clauding.exe | Select-Object -First 1
+          $p = Start-Process $exe.FullName -ArgumentList "--self-test selftest.txt" -Wait -PassThru
+          Get-Content selftest.txt
+          if ($p.ExitCode -ne 0) { exit 1 }
+      - name: Publish
+        run: dotnet publish Clauding.csproj -c Release -r win-x64 --self-contained false -p:Version=${{ env.VERSION }} -o publish
+      - name: Pack and upload
+        shell: pwsh
+        run: |
+          dotnet tool install -g vpk
+          $repo = "https://github.com/${{ github.repository }}"
+          vpk download github --repoUrl $repo --token ${{ secrets.GITHUB_TOKEN }} -o releases
+          vpk pack -u Clauding -v ${{ env.VERSION }} -p publish -e Clauding.exe -i icon.ico -r win-x64 `
+            --packTitle Clauding --packAuthors ofc.works -f net9-x64-desktop -o releases
+          vpk upload github --repoUrl $repo --token ${{ secrets.GITHUB_TOKEN }} -o releases `
+            --publish --releaseName "Clauding ${{ env.VERSION }}" --tag v${{ env.VERSION }}

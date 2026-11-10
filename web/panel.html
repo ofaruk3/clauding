@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Shortcuts</title>
+<link rel="stylesheet" href="panel.css">
+</head>
+<body>
+  <div class="zemin" aria-hidden="true"></div>
+  <header class="tepe" id="tepe">
+    <div class="baslik">
+      <h1 id="pBaslik"></h1>
+      <p id="pAlt"></p>
+    </div>
+    <nav class="mod">
+      <span class="sekmeler" id="sekmeler">
+        <button data-sekme="klavye" id="sKlavye"></button>
+        <button data-sekme="makro" id="sMakro"></button>
+      </span>
+      <span class="ayirac"></span>
+      <button data-mod="rehber" id="mRehber"></button>
+      <button data-mod="duzen" id="mDuzen"></button>
+      <span class="ayirac"></span>
+      <button class="kapat" id="kapat"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+    </nav>
+  </header>
+
+  <main class="govde">
+    <!-- keyboard: every action with its shortcut -->
+    <section class="kliste" id="kliste"></section>
+
+    <!-- macro pad (only when one is on) -->
+    <section class="sahne-klavye" id="makroSahne" hidden>
+      <div class="plaka" id="plaka">
+        <i class="vida v1"></i><i class="vida v2"></i><i class="vida v3"></i><i class="vida v4"></i>
+        <div class="tuslar" id="tuslar"></div>
+        <div class="noblar" id="noblar"></div>
+      </div>
+      <p class="ipucu" id="ipucu"></p>
+    </section>
+    <aside class="cekmece" id="cekmece">
+      <div class="cekmece-ic" id="cekmeceIc"></div>
+    </aside>
+  </main>
+
+  <footer class="alt-cubuk" id="altCubuk">
+    <span id="altNot"></span>
+    <span class="alt-sag">
+      <button id="sifirla"></button>
+      <button id="ayarlarAc"></button>
+    </span>
+  </footer>
+
+  <div class="bildirim" id="bildirim"></div>
+  <script src="panel.js"></script>
+</body>
+</html>
