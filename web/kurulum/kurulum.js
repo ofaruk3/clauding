@@ -71,6 +71,8 @@ const S = {
     genelT: "General", genelD: "Language, startup and how Close behaves.",
     closeLine: "Closing line", closeLineS: "If set, Close first types this into Claude (e.g. a save-memory prompt) and closes after Claude answers. Empty = close right away.",
     holdT: "Hold the modifiers to see shortcuts", holdOff: "Off",
+    oneBtn: "One taskbar button", oneBtnS: "Your tiled Claudes share one Clauding button instead of one each",
+    news: "What's new", known: "Known issue",
     aboutT: "Clauding", aboutD: "A tiling window manager for Claude Code on Windows. Open source.",
     checkNow: "Check now", restartUpd: "Restart to update to {0}", devBuild: "Development build: updates are off.",
     report: "Report a problem", reportS: "Zips the log and settings to your desktop.", openSettings: "Settings folder", openLogs: "Logs",
@@ -118,6 +120,8 @@ const S = {
     genelT: "Genel", genelD: "Dil, açılış ve Kapat'ın davranışı.",
     closeLine: "Kapanış satırı", closeLineS: "Doluysa Kapat önce bunu Claude'a yazar (ör. hafızayı kaydet), Claude cevap verince kapatır. Boş = hemen kapatır.",
     holdT: "Kısayolları görmek için basılı tutma", holdOff: "Kapalı",
+    oneBtn: "Tek görev çubuğu düğmesi", oneBtnS: "Dizili Claude'lar tek tek değil, tek bir Clauding düğmesinde görünür",
+    news: "Yenilikler", known: "Bilinen sorun",
     aboutT: "Clauding", aboutD: "Windows'ta Claude Code için tiling pencere yöneticisi. Açık kaynak.",
     checkNow: "Şimdi denetle", restartUpd: "{0} sürümüne geçmek için yeniden başlat", devBuild: "Geliştirme sürümü: güncellemeler kapalı.",
     report: "Sorun bildir", reportS: "Kayıtları ve ayarları masaüstüne zipler.", openSettings: "Ayar klasörü", openLogs: "Kayıtlar",
@@ -260,6 +264,7 @@ const kartlar = [
           <div class="segment" id="dil"><button data-v="auto">${t().auto}</button><button data-v="en">English</button><button data-v="tr">Türkçe</button></div>
         </div>
         <div class="anahtar-satir"><span class="metin">${t().login}</span><button class="anahtar" id="bas"></button></div>
+        <div class="anahtar-satir"><span class="metin">${t().oneBtn}<small>${t().oneBtnS}</small></span><button class="anahtar" id="tekDugme"></button></div>
         <div class="anahtar-satir"><span class="metin">${t().holdT}</span>
           <div class="segment" id="tut"><button data-v="0">${t().holdOff}</button><button data-v="500">0.5 s</button><button data-v="700">0.7 s</button><button data-v="1200">1.2 s</button></div></div>
         <div class="anahtar-satir" style="display:block"><span class="metin">${t().closeLine}<small>${t().closeLineS}</small></span>
@@ -268,6 +273,7 @@ const kartlar = [
     bagla(el) {
       segment(el, "#dil", durum.dil, (v) => { ayarla({ dil: v }); dil = v === "auto" ? sistemDili : v; yenidenCiz(); });
       anahtar(el, "#bas", algi.baslangic, (v) => gonder({ t: "baslangic", acik: v }));
+      anahtar(el, "#tekDugme", durum.tekGorevDugmesi !== false, (v) => ayarla({ tekGorevDugmesi: v }));
       segment(el, "#tut", String(durum.rehberBekleme), (v) => ayarla({ rehberBekleme: +v }));
       let z = 0;
       $("#kapanis", el).addEventListener("input", (e) => { clearTimeout(z); z = setTimeout(() => ayarla({ kapanisMetni: e.target.value }), 400); });
@@ -570,10 +576,12 @@ const kartlar = [
           <button class="kucuk-dugme" id="kayitKlasor">${t().openLogs}</button>
           <button class="kucuk-dugme" id="repo">${t().repo}</button>
         </div>
+        <div class="yenilikler" id="yenilikler"></div>
         <p class="not"><span>${f(t().ver, algi.surum)}</span></p>
       </div>`,
     bagla(el) {
       anahtar(el, "#gun", durum.guncelle, (v) => ayarla({ guncelle: v }));
+      yenilikleriCiz($("#yenilikler", el));
       const tik = (s, m) => { const b = $(s, el); if (b) b.onclick = () => gonder(m); };
       tik("#denetle", { t: "guncelle" }); tik("#yeniden", { t: "yenidenBaslat" }); tik("#sorun", { t: "sorun" });
       tik("#ayarKlasor", { t: "klasorAc", ne: "ayar" }); tik("#kayitKlasor", { t: "klasorAc", ne: "kayit" });
@@ -606,6 +614,20 @@ const kartlar = [
     },
   },
 ];
+
+// ---------- what's new (web/changelog.json, the same notes as the GitHub release) ----------
+let degisiklikler = null;
+async function yenilikleriCiz(kutu) {
+  if (!kutu) return;
+  try { degisiklikler ??= await (await fetch("../changelog.json", { cache: "no-store" })).json(); } catch { return; }
+  const esc = (x) => String(x).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+  const d = dil === "tr" ? "tr" : "en";
+  kutu.innerHTML = `<h3>${t().news}</h3>` + degisiklikler.versions.slice(0, 3).map((v) => `
+    <div class="surum-notu"><div class="surum-bas"><b>${esc(v.version)}</b><span>${esc(v.date || "")}</span></div>
+      <ul>${(v[d] || v.en).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
+      ${v.known ? (v.known[d] || v.known.en || []).map((x) => `<p class="not"><span><b>${t().known}:</b> ${esc(x)}</span></p>`).join("") : ""}
+    </div>`).join("");
+}
 
 // ---------- deck (onboarding) / sidebar (settings) ----------
 const deste = $("#deste");

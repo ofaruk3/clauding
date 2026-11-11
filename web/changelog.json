@@ -1,0 +1,32 @@
+{
+  "versions": [
+    {
+      "version": "0.1.1",
+      "date": "2026-11-11",
+      "en": [
+        "Your tiled Claudes now share one Clauding button on the taskbar instead of one button each. Click it to bring them all forward, click again to hide them, once more to bring them back.",
+        "Hovering the button shows a small picture of your Claudes.",
+        "Detached terminals, and ones you minimize on their own, keep their own taskbar button so you can always find them.",
+        "New setting: General → One taskbar button (on by default).",
+        "Settings → About now lists what's new."
+      ],
+      "tr": [
+        "Dizili Claude'lar görev çubuğunda artık tek tek değil, tek bir Clauding düğmesinde. Tıklayınca hepsi öne gelir, tekrar tıklayınca gizlenir, bir daha tıklayınca geri gelir.",
+        "Düğmenin üstüne gelince Claude'larının küçük bir resmi görünür.",
+        "Gruptan ayrılan ve tek başına küçültülen terminaller kendi düğmesini korur, böylece her zaman bulunur.",
+        "Yeni ayar: Genel → Tek görev çubuğu düğmesi (varsayılan açık).",
+        "Ayarlar → Hakkında artık yenilikleri gösteriyor."
+      ],
+      "known": {
+        "en": ["The full-screen peek (hovering over the small picture) does not show yet."],
+        "tr": ["Küçük resmin üstüne gelince çıkan tam ekran önizleme (peek) henüz görünmüyor."]
+      }
+    },
+    {
+      "version": "0.1.0",
+      "date": "2026-11-11",
+      "en": ["First public release."],
+      "tr": ["İlk açık sürüm."]
+    }
+  ]
+}

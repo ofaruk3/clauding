@@ -375,3 +375,12 @@ body.ayarlar .kart.uzun .gorsel { height: 280px; }
 body.ayarlar .alt { display: none; }
 body.ayarlar .parilti { left: calc(50% + 118px); }
 body.ayarlar .intro { display: none; }
+
+/* Settings → About: what's new */
+.yenilikler { display: flex; flex-direction: column; gap: 14px; margin-top: 6px; max-height: 300px; overflow-y: auto; padding-right: 6px; }
+.yenilikler h3 { font-size: 13px; font-weight: 500; color: var(--soluk); letter-spacing: .02em; }
+.surum-notu { display: flex; flex-direction: column; gap: 6px; }
+.surum-bas { display: flex; align-items: baseline; gap: 10px; }
+.surum-bas b { font-weight: 550; font-size: 14px; }
+.surum-bas span { color: var(--silik); font-size: 12px; }
+.surum-notu ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; color: var(--soluk); font-size: 13px; line-height: 1.45; }

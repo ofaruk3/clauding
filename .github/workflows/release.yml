@@ -27,6 +27,17 @@ jobs:
           if ($p.ExitCode -ne 0) { exit 1 }
       - name: Publish
         run: dotnet publish Clauding.csproj -c Release -r win-x64 --self-contained false -p:Version=${{ env.VERSION }} -o publish
+      - name: Release notes from web/changelog.json
+        shell: pwsh
+        run: |
+          $v = (Get-Content web/changelog.json -Raw | ConvertFrom-Json).versions | Where-Object { $_.version -eq $env:VERSION } | Select-Object -First 1
+          if (-not $v) { Write-Error "web/changelog.json has no entry for $env:VERSION"; exit 1 }
+          $md = ($v.en | ForEach-Object { "- $_" }) -join "`n"
+          if ($v.known) { $md += "`n`n**Known issue:** " + ($v.known.en -join " ") }
+          $md += "`n`n<details><summary>Türkçe</summary>`n`n" + (($v.tr | ForEach-Object { "- $_" }) -join "`n")
+          if ($v.known) { $md += "`n`n**Bilinen sorun:** " + ($v.known.tr -join " ") }
+          $md += "`n`n</details>"
+          Set-Content -Path notes.md -Value $md -Encoding utf8
       - name: Pack and upload
         shell: pwsh
         run: |
@@ -34,6 +45,11 @@ jobs:
           $repo = "https://github.com/${{ github.repository }}"
           vpk download github --repoUrl $repo --token ${{ secrets.GITHUB_TOKEN }} -o releases
           vpk pack -u Clauding -v ${{ env.VERSION }} -p publish -e Clauding.exe -i icon.ico -r win-x64 `
-            --packTitle Clauding --packAuthors ofc.works -f net9-x64-desktop -o releases
+            --packTitle Clauding --packAuthors ofc.works -f net9-x64-desktop --releaseNotes notes.md -o releases
           vpk upload github --repoUrl $repo --token ${{ secrets.GITHUB_TOKEN }} -o releases `
             --publish --releaseName "Clauding ${{ env.VERSION }}" --tag v${{ env.VERSION }}
+      - name: Release body
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "v${{ env.VERSION }}" --repo "${{ github.repository }}" --notes-file notes.md

@@ -174,6 +174,7 @@ sealed partial class Yonetici
     void GizleGoster()
     {
         bool acikVar = sira.Any(h => N.IsWindow(h) && !N.IsIconic(h));
+        grupKucuk = acikVar;
         foreach (var h in sira.ToList()) N.ShowWindow(h, acikVar ? 6 /*SW_MINIMIZE*/ : N.SW_RESTORE);
         DizIste();
     }

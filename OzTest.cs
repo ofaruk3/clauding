@@ -65,6 +65,16 @@ static class OzTest
         Bak(Katalog.Eylemler.Select(e => e.id).Distinct().Count() == Katalog.Eylemler.Length, "catalog ids are unique");
         Bak(Katalog.Eylemler.All(e => e.en != "" && e.tr != ""), "catalog: every action has both languages");
 
+        // changelog: every release needs its notes (they become the GitHub release notes too)
+        try
+        {
+            using var cl = System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "web", "changelog.json")));
+            var ilk = cl.RootElement.GetProperty("versions")[0];
+            Bak(ilk.GetProperty("version").GetString() == Surum.Simdiki, $"changelog: top entry is {Surum.Simdiki}");
+            Bak(ilk.GetProperty("en").GetArrayLength() > 0 && ilk.GetProperty("tr").GetArrayLength() == ilk.GetProperty("en").GetArrayLength(), "changelog: English and Turkish notes match");
+        }
+        catch (Exception e) { Bak(false, "changelog unreadable: " + e.Message); }
+
         sb.AppendLine(hata == 0 ? "ALL PASSED" : $"{hata} FAILED");
         if (rapor != null) File.WriteAllText(rapor, sb.ToString()); else Console.Write(sb.ToString());
         return hata == 0 ? 0 : 1;

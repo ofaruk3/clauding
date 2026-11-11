@@ -34,6 +34,9 @@ sealed partial class Yonetici : ApplicationContext
     readonly Dictionary<IntPtr, (bool calisiyor, DateTime zaman)> faaliyet = new(); // from the title spinner
     readonly Dictionary<IntPtr, string> basliklar = new();
     readonly Sahne sahneAna, sahneIkinci;
+    readonly GorevDugmesi gorevDugmesi = new();
+    readonly HashSet<IntPtr> gorevdenGizli = new(); // terminals we took off the taskbar
+    bool grupOndeydi, grupKucuk; // a tiled Claude was the last foreground window / the group was minimized from its button
     IntPtr suruklenen, odak, sonOdak; // sonOdak: the last Claude you were in, kept while another app is in front
     Rectangle surukBas;
     bool diziliyor, duraklat, basladi;
@@ -60,6 +63,11 @@ sealed partial class Yonetici : ApplicationContext
         olayCb = Olay;
         fareCb = FareKanca;
         oneAlZ.Tick += (_, _) => { oneAlZ.Stop(); TiklamaSonrasi(); };
+        gorevDugmesi.Tiklandi += GorevTiklandi;
+        gorevDugmesi.Onizleme = Onizleme;
+        gorevDugmesi.TamOnizleme = TamOnizleme;
+        onizlemeZ.Tick += (_, _) => { if (GrupOnde()) { OnizlemeYakala(); gorevDugmesi.OnizlemeEskidi(); } };
+        gorevZ.Tick += (_, _) => { gorevZ.Stop(); GorevSenkron(); };
 
         TepsiKur();
         if (!ayar.OnboardingBitti) KurulumAc(true);
@@ -83,7 +91,10 @@ sealed partial class Yonetici : ApplicationContext
         RehberIzlemeyiKur();
         MevcutlariTopla();
         odak = N.GetAncestor(N.GetForegroundWindow(), N.GA_ROOT);
+        if (Yonetilen(odak)) sonOdak = odak; // no FOREGROUND event comes for the window you are already in
         Diz();
+        grupOndeydi = karolar.ContainsKey(odak);
+        onizlemeZ.Start();
         foreach (var h in sira.Where(N.IsZoomed).ToList()) KucultGuncelle(h, true);
         SystemEvents.DisplaySettingsChanged += (_, _) => { DizIste(); SahneIste(); };
         Kayit.Yaz($"tiling started: {sira.Count} windows, {kisayolEylem.Count} shortcuts, taken: {(kisayolHatalari.Count == 0 ? "none" : string.Join(", ", kisayolHatalari))}");
@@ -136,6 +147,7 @@ sealed partial class Yonetici : ApplicationContext
         // the Claude you were in is closing: Windows would hand focus to whatever app is below the group
         // (the scene never takes focus), and that app would cover everything. Keep a neighbour in front instead.
         var komsu = (h == odak || h == sonOdak || N.GetAncestor(N.GetForegroundWindow(), N.GA_ROOT) == h) ? Komsu(h) : IntPtr.Zero;
+        if (gorevdenGizli.Remove(h) && N.IsWindowVisible(h)) Gorev.Goster(h);
         bool vardi = sira.Remove(h);
         ayrik.Remove(h); buyuk.Remove(h); karolar.Remove(h); basliklar.Remove(h); faaliyet.Remove(h); konsollar.Remove(h);
         IsaretSil(h); TutamakSil(h); KucultGuncelle(h, false); yeniler.Remove(h); animler.Remove(h); kapanis.Remove(h);
@@ -215,7 +227,7 @@ sealed partial class Yonetici : ApplicationContext
         foreach (var h in sira.Where(h => !N.IsWindow(h) || !N.IsWindowVisible(h)).ToList()) Cikar(h);
         foreach (var h in tutamaklar.Keys.Where(h => !ayrik.Contains(h)).ToList()) TutamakSil(h);
         foreach (var h in ayrik) TutamakGuncelle(h);
-        if (duraklat) { animZamanlayici.Stop(); sahneAna.Hide(); sahneIkinci.Hide(); TepsiYazisi(); return; }
+        if (duraklat) { animZamanlayici.Stop(); sahneAna.Hide(); sahneIkinci.Hide(); GorevSenkron(); TepsiYazisi(); return; }
 
         var aktif = sira.Where(h => !ayrik.Contains(h) && !N.IsIconic(h) && !N.IsZoomed(h)).ToList();
         var ikinci = IkinciAlan();
@@ -239,11 +251,13 @@ sealed partial class Yonetici : ApplicationContext
         diziliyor = false;
 
         if (anaSayi > 0) sahneAna.Yerles(anaAlan); else sahneAna.Hide();
+        gorevDugmesi.Yerles(anaAlan);
         if (ikinci != null && ikSay > 0) sahneIkinci.Yerles(ikinci.Value); else sahneIkinci.Hide();
         GrubuOneAl(Yonetilen(odak) && karolar.ContainsKey(odak) ? odak : IntPtr.Zero);
         sahneAnim = anim;
         SahneyiGuncelle();
         sahneAnim = false;
+        GorevSenkron();
         TepsiYazisi();
     }
 
@@ -367,6 +381,137 @@ sealed partial class Yonetici : ApplicationContext
         return bulunan;
     }
 
+    // ---------- taskbar: one button for the whole group ----------
+
+    readonly System.Windows.Forms.Timer gorevZ = new() { Interval = 250 };
+    readonly System.Windows.Forms.Timer onizlemeZ = new() { Interval = 3000 };
+    Bitmap? sonGoruntu; // the work area the last time the group was in front (preview while it is hidden)
+    readonly Queue<string> sonOnler = new(); // recent foreground window classes, for the click log
+
+    bool GrupOnde() => karolar.ContainsKey(N.GetAncestor(N.GetForegroundWindow(), N.GA_ROOT));
+
+    void OnizlemeYakala(int genislik = 1280)
+    {
+        if (karolar.Count == 0) return;
+        var alan = sahneAna.Visible ? sahneAna.Bounds : CalismaAlani();
+        var eski = sonGoruntu;
+        sonGoruntu = G.Yakala(alan, genislik);
+        eski?.Dispose();
+    }
+
+    Bitmap? TamOnizleme(Size boyut)
+    {
+        if (GrupOnde()) OnizlemeYakala(boyut.Width);
+        return sonGoruntu == null ? null : sonGoruntu.Size == boyut ? new Bitmap(sonGoruntu) : G.Boyutla(sonGoruntu, boyut);
+    }
+
+    Bitmap? Onizleme(Size max)
+    {
+        if (GrupOnde()) OnizlemeYakala();
+        return sonGoruntu == null ? null : G.Sigdir(sonGoruntu, max);
+    }
+
+    static bool GorevCubuguSinifi(string s) => s is "Shell_TrayWnd" or "Shell_SecondaryTrayWnd" or "TaskListThumbnailWnd"
+        or "XamlExplorerHostIslandWindow" or "TopLevelWindowForOverflowXamlIsland" or "NotifyIconOverflowWindow" or "ForegroundStaging";
+
+    /// <summary>
+    /// Tiled terminals have no taskbar button of their own; the Clauding button stands for them.
+    /// Detached ones, and ones you minimized one by one, keep theirs so they can be found.
+    /// </summary>
+    void GorevSenkron()
+    {
+        bool tek = basladi && ayar.TekGorevDugmesi && !duraklat;
+        var dizili = sira.Where(h => !ayrik.Contains(h) && N.IsWindow(h)).ToList();
+        if (grupKucuk && dizili.Any(h => !N.IsIconic(h))) grupKucuk = false;
+        foreach (var h in sira.ToList())
+        {
+            if (!N.IsWindow(h)) continue;
+            bool gizle = tek && !ayrik.Contains(h) && (grupKucuk || !N.IsIconic(h));
+            if (gizle) { Gorev.Gizle(h); gorevdenGizli.Add(h); } // repeated on purpose: Explorer sometimes puts a button back
+            else if (gorevdenGizli.Remove(h)) Gorev.Goster(h);
+        }
+        if (tek && !gorevDugmesi.Visible) { gorevDugmesi.Yerles(CalismaAlani()); gorevDugmesi.Ac(); }
+        else if (!tek && gorevDugmesi.Visible) gorevDugmesi.Hide();
+    }
+
+    /// <summary>
+    /// The Clauding taskbar button, like any app's button: hidden group → bring it back; group in front → hide it;
+    /// group behind another app → bring it forward. "In front" = the last window you were in (ignoring the taskbar
+    /// itself) was one of the tiled Claudes.
+    /// </summary>
+    void GorevTiklandi()
+    {
+        if (!basladi) { KurulumAc(true); return; }
+        if (sira.Count == 0) { YeniClaude(); return; }
+        var dizili = sira.Where(h => !ayrik.Contains(h) && N.IsWindow(h)).ToList();
+        IntPtr Hedef(IEnumerable<IntPtr> aday)
+        {
+            var l = aday.ToList();
+            return l.Contains(odak) ? odak : l.Contains(sonOdak) ? sonOdak : l.FirstOrDefault();
+        }
+        string karar;
+        if (dizili.Count == 0)
+        {
+            karar = "only detached: focus one";
+            var a = Hedef(sira); if (N.IsIconic(a)) N.ShowWindow(a, N.SW_RESTORE); N.SetForegroundWindow(a);
+        }
+        else if (dizili.All(N.IsIconic))
+        {
+            karar = "hidden: restore";
+            grupKucuk = false;
+            foreach (var h in dizili) N.ShowWindow(h, 4 /*SW_SHOWNOACTIVATE*/);
+            var hedef = Hedef(dizili);
+            N.SetForegroundWindow(hedef);
+            grupOndeydi = true;
+            DizIste(true);
+        }
+        else if (grupOndeydi)
+        {
+            karar = "in front: hide";
+            OnizlemeYakala(4096); gorevDugmesi.OnizlemeEskidi(); // the preview shows what you hid (full size, for peek)
+            grupKucuk = true; grupOndeydi = false;
+            foreach (var h in dizili) N.ShowWindow(h, 7 /*SW_SHOWMINNOACTIVE: keystrokes must not land in a hidden Claude*/);
+            var alt = AlttakiPencere();
+            if (alt == IntPtr.Zero) alt = GetShellWindow(); // nothing open below: the desktop
+            N.SetForegroundWindow(alt); // like Windows does: the app below gets the keyboard
+            DizIste();
+        }
+        else
+        {
+            karar = "behind: bring forward";
+            var on = Hedef(dizili.Where(h => karolar.ContainsKey(h)));
+            if (on == IntPtr.Zero) on = Hedef(dizili);
+            foreach (var h in dizili.Where(N.IsIconic)) N.ShowWindow(h, 4 /*SW_SHOWNOACTIVATE*/);
+            N.SetForegroundWindow(on);
+            GrubuOneAl(on, true);
+            grupOndeydi = true;
+        }
+        var fg = N.GetAncestor(N.GetForegroundWindow(), N.GA_ROOT);
+        Kayit.Yaz($"taskbar click → {karar}; now in front: {N.Sinif(fg)}{(sira.Contains(fg) ? "*" : "")} (recent: {string.Join(" > ", sonOnler)})");
+    }
+
+    [DllImport("dwmapi.dll")] static extern int DwmGetWindowAttribute(IntPtr h, int attr, out int v, int size);
+    [DllImport("user32.dll")] static extern IntPtr GetShellWindow();
+
+    /// <summary>The first ordinary app window below the group (what Windows would focus after a minimize).</summary>
+    IntPtr AlttakiPencere()
+    {
+        IntPtr bulunan = IntPtr.Zero;
+        uint biz = (uint)Environment.ProcessId;
+        N.EnumWindows((h, _) =>
+        {
+            if (!N.IsWindowVisible(h) || N.IsIconic(h) || sira.Contains(h)) return true;
+            N.GetWindowThreadProcessId(h, out var pid);
+            if (pid == biz) return true;
+            int ex = N.GetWindowLong(h, -20 /*GWL_EXSTYLE*/);
+            if ((ex & 0x80 /*TOOLWINDOW*/) != 0 || (ex & 0x08 /*TOPMOST*/) != 0 || (ex & 0x08000000 /*NOACTIVATE*/) != 0) return true;
+            if (DwmGetWindowAttribute(h, 14 /*DWMWA_CLOAKED*/, out var gizli, 4) == 0 && gizli != 0) return true;
+            if (N.GetWindow(h, N.GW_OWNER) != IntPtr.Zero || N.Baslik(h).Length == 0) return true;
+            bulunan = h; return false;
+        }, IntPtr.Zero);
+        return bulunan;
+    }
+
     // ---------- events ----------
 
     void Olay(IntPtr hook, uint ev, IntPtr h, int obj, int child, uint th, uint t)
@@ -399,6 +544,10 @@ sealed partial class Yonetici : ApplicationContext
                 case N.EVENT_SYSTEM_FOREGROUND:
                     var kok = N.GetAncestor(h, N.GA_ROOT);
                     if (kok == sahneAna.Handle || kok == sahneIkinci.Handle) break;
+                    var sinif = N.Sinif(kok);
+                    sonOnler.Enqueue(sinif + (karolar.ContainsKey(kok) ? "*" : "")); while (sonOnler.Count > 5) sonOnler.Dequeue();
+                    if (!GorevCubuguSinifi(sinif)) grupOndeydi = Yonetilen(kok) && !ayrik.Contains(kok) && !N.IsIconic(kok);
+                    if (gorevdenGizli.Contains(kok)) { gorevZ.Stop(); gorevZ.Start(); } // the taskbar may re-add an activated window
                     if (Yonetilen(kok))
                     {
                         odak = kok; sonOdak = kok;
@@ -639,6 +788,9 @@ sealed partial class Yonetici : ApplicationContext
         if (fareKanca != IntPtr.Zero) N.UnhookWindowsHookEx(fareKanca);
         foreach (var h in isaret.Keys.ToList()) IsaretSil(h);
         foreach (var id in kisayolEylem.Keys) N.UnregisterHotKey(msj.Handle, id);
+        foreach (var h in gorevdenGizli) if (N.IsWindowVisible(h)) Gorev.Goster(h);
+        gorevdenGizli.Clear();
+        gorevDugmesi.Close();
         sahneAna.Close(); sahneIkinci.Close(); panel?.Close(); kurulum?.Close();
         tepsi.Visible = false;
         tepsi.Dispose();

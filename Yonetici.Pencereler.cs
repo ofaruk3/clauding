@@ -174,7 +174,7 @@ sealed partial class Yonetici
                 tasma = ayar.AnaEkranKapasite, ikinciEkran = ayar.IkinciEkraniKullan,
                 tema = ayar.Tema, vurgu = ayar.Vurgu, efekt = ayar.Efekt, animasyonMs = ayar.AnimasyonMs,
                 guncelle = ayar.GuncellemeDenetle, makroKlavye = ayar.MakroKlavye, kapanisMetni = ayar.KapanisMetni,
-                odakModu = ayar.OdakModu, rehberBekleme = ayar.RehberBekleme,
+                odakModu = ayar.OdakModu, rehberBekleme = ayar.RehberBekleme, tekGorevDugmesi = ayar.TekGorevDugmesi,
             },
             algilanan = new
             {
@@ -266,6 +266,7 @@ sealed partial class Yonetici
                 case "efekt": ayar.Efekt = v.GetBoolean(); break;
                 case "animasyonMs": ayar.AnimasyonMs = Math.Clamp(v.GetInt32(), 0, 600); break;
                 case "guncelle": ayar.GuncellemeDenetle = v.GetBoolean(); break;
+                case "tekGorevDugmesi": ayar.TekGorevDugmesi = v.GetBoolean(); diz = true; break;
                 case "makroKlavye": ayar.MakroKlavye = v.GetBoolean(); kisayol = true; break;
                 case "kapanisMetni": ayar.KapanisMetni = v.GetString() ?? ""; break;
                 case "rehberBekleme": ayar.RehberBekleme = Math.Clamp(v.GetInt32(), 0, 3000); break;

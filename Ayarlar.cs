@@ -103,6 +103,8 @@ class Ayarlar
 
     // ---------- app ----------
     public bool GuncellemeDenetle { get; set; } = true;
+    /// <summary>one "Clauding" taskbar button for the group instead of one button per terminal</summary>
+    public bool TekGorevDugmesi { get; set; } = true;
 
     public const string Mod = "Ctrl+Win+Alt";
 
