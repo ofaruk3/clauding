@@ -11,7 +11,7 @@
     <RootNamespace>Clauding</RootNamespace>
     <InvariantGlobalization>true</InvariantGlobalization>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
-    <Version>0.1.1</Version>
+    <Version>0.1.2</Version>
     <ApplicationIcon>icon.ico</ApplicationIcon>
     <Product>Clauding</Product>
     <Company>ofc.works</Company>

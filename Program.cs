@@ -11,13 +11,29 @@ static class Program
     [STAThread]
     static int Main(string[] args)
     {
-        // Velopack must run first: it handles install / update / uninstall events and exits on its own when needed
+        // Velopack must run first: it handles install / update / uninstall events and exits on its own when needed.
+        // Only the tray app itself may install a downloaded update at startup. Claude Code starts this exe for
+        // every hook (--signal ...); if that process installed the update, Velopack would close the running tray
+        // app and restart only the hook process (with the hook's arguments), so the app would be gone.
+        bool anaUygulama = args.Length == 0, guncellemeSonrasi = false;
         VelopackApp.Build()
+            .SetAutoApplyOnStartup(anaUygulama)
+            .OnRestarted(_ => guncellemeSonrasi = true)
             .OnBeforeUninstallFastCallback(_ => { try { Kancalar.Kaldir(); BaslangicKaydi.Kapat(); } catch { } })
             .OnAfterUpdateFastCallback(_ => { try { if (Kancalar.Kurulu()) Kancalar.Kur(); } catch { } }) // point hooks at the new exe
             .Run();
 
-        if (args.Length >= 2 && (args[0] == "--signal" || args[0] == "--sinyal")) return Sinyal(args[1]);
+        if (args.Length >= 2 && (args[0] == "--signal" || args[0] == "--sinyal"))
+        {
+            // an older version installed the update from a hook process: Velopack restarted us with the hook's
+            // arguments and the tray app is gone. Bring it back (through Explorer, for a clean environment).
+            if (guncellemeSonrasi && N.FindWindowEx(N.HWND_MESSAGE, IntPtr.Zero, null, MesajPencereAdi) == IntPtr.Zero)
+            {
+                try { System.Diagnostics.Process.Start("explorer.exe", $"\"{Environment.ProcessPath}\""); } catch { }
+                return 0;
+            }
+            return Sinyal(args[1]);
+        }
         if (args.Length >= 1 && args[0] == "--diagnose") return Teshis(args.Length > 1 ? args[1] : null);
         if (args.Length >= 1 && args[0] == "--self-test") return OzTest.Calistir(args.Length > 1 ? args[1] : null);
 

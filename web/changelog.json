@@ -1,6 +1,26 @@
 {
   "versions": [
     {
+      "version": "0.1.2",
+      "date": "2026-11-11",
+      "en": [
+        "Fix: after an update was downloaded, the next Claude prompt could close Clauding instead of restarting it. Updates now install only when Clauding itself starts, quits or restarts from the tray.",
+        "Updating from 0.1.1 to this version brings Clauding back up on its own if it closed."
+      ],
+      "tr": [
+        "Düzeltme: güncelleme indikten sonra Claude'a yazılan ilk mesaj Clauding'i yeniden başlatmak yerine kapatabiliyordu. Güncellemeler artık sadece Clauding açılırken, kapanırken ya da tepsiden yeniden başlatılınca kuruluyor.",
+        "0.1.1'den bu sürüme geçerken Clauding kapanırsa kendiliğinden yeniden açılıyor."
+      ],
+      "known": {
+        "en": [
+          "The full-screen peek (hovering over the small picture) does not show yet."
+        ],
+        "tr": [
+          "Küçük resmin üstüne gelince çıkan tam ekran önizleme (peek) henüz görünmüyor."
+        ]
+      }
+    },
+    {
       "version": "0.1.1",
       "date": "2026-11-11",
       "en": [
@@ -18,15 +38,23 @@
         "Ayarlar → Hakkında artık yenilikleri gösteriyor."
       ],
       "known": {
-        "en": ["The full-screen peek (hovering over the small picture) does not show yet."],
-        "tr": ["Küçük resmin üstüne gelince çıkan tam ekran önizleme (peek) henüz görünmüyor."]
+        "en": [
+          "The full-screen peek (hovering over the small picture) does not show yet."
+        ],
+        "tr": [
+          "Küçük resmin üstüne gelince çıkan tam ekran önizleme (peek) henüz görünmüyor."
+        ]
       }
     },
     {
       "version": "0.1.0",
       "date": "2026-11-11",
-      "en": ["First public release."],
-      "tr": ["İlk açık sürüm."]
+      "en": [
+        "First public release."
+      ],
+      "tr": [
+        "İlk açık sürüm."
+      ]
     }
   ]
 }
